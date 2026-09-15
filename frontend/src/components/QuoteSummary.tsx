@@ -3,6 +3,7 @@ import type { Quote } from "../types";
 
 interface Props {
   quote: Quote | null;
+  dirty: boolean;
   quoteDiscount: string;
   onQuoteDiscountChange: (value: string) => void;
   savedQuote: Quote | null;
@@ -14,6 +15,7 @@ interface Props {
 
 export function QuoteSummary({
   quote,
+  dirty,
   quoteDiscount,
   onQuoteDiscountChange,
   savedQuote,
@@ -25,7 +27,7 @@ export function QuoteSummary({
   const totals = quote?.totals;
   const needsApproval = Boolean(quote?.requires_approval);
   const approved = savedQuote?.status === "Approved" || savedQuote?.status === "Synced to Salesforce";
-  const canSync = Boolean(savedQuote) && (!needsApproval || approved);
+  const canSync = Boolean(savedQuote) && !dirty && (!needsApproval || approved);
 
   return (
     <section className="card summary">
@@ -78,11 +80,17 @@ export function QuoteSummary({
         </p>
       )}
 
-      {quote?.approval_reason && !approved && (
+      {quote?.approval_reason && (!approved || dirty) && (
         <p className="banner warning">{quote.approval_reason}</p>
       )}
 
-      {savedQuote?.status === "Synced to Salesforce" && (
+      {savedQuote && dirty && (
+        <p className="banner warning">
+          Unsaved changes — save the quote to sync these totals to Salesforce.
+        </p>
+      )}
+
+      {savedQuote?.status === "Synced to Salesforce" && !dirty && (
         <p className="banner success">
           {savedQuote.id} synced — opportunity amount set to {money(savedQuote.totals.net_total)}.
         </p>
@@ -92,8 +100,8 @@ export function QuoteSummary({
         <button type="button" onClick={onSave} disabled={busy || !quote}>
           {savedQuote ? "Save changes" : "Save quote"}
         </button>
-        {needsApproval && !approved && (
-          <button type="button" onClick={onApprove} disabled={busy || !savedQuote}>
+        {needsApproval && (!approved || dirty) && (
+          <button type="button" onClick={onApprove} disabled={busy || !savedQuote || dirty}>
             Approve discount
           </button>
         )}
