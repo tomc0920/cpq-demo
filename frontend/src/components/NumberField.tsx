@@ -5,16 +5,12 @@ interface Props {
   onCommit: (value: string) => void;
   min: number;
   max?: number;
-  step?: number;
+  integer?: boolean;
   label: string;
 }
 
-function clamp(value: number, min: number, max?: number) {
-  return Math.min(max ?? Number.POSITIVE_INFINITY, Math.max(min, value));
-}
-
-/** Number input that keeps intermediate typing intact and clamps the committed value. */
-export function NumberField({ value, onCommit, min, max, step = 1, label }: Props) {
+/** Number input that keeps intermediate typing intact and normalizes the committed value. */
+export function NumberField({ value, onCommit, min, max, integer = false, label }: Props) {
   const [draft, setDraft] = useState(String(value));
   const [editing, setEditing] = useState(false);
   const [lastValue, setLastValue] = useState(value);
@@ -24,11 +20,11 @@ export function NumberField({ value, onCommit, min, max, step = 1, label }: Prop
     setDraft(String(value));
   }
 
-  const commit = (raw: string) => {
+  const normalize = (raw: string) => {
     const parsed = Number(raw);
-    if (raw.trim() === "" || Number.isNaN(parsed)) return;
-    const clamped = clamp(parsed, min, max);
-    onCommit(step === 1 ? String(Math.round(clamped)) : String(clamped));
+    if (raw.trim() === "" || Number.isNaN(parsed)) return null;
+    const clamped = Math.min(max ?? Number.POSITIVE_INFINITY, Math.max(min, parsed));
+    return String(integer ? Math.round(clamped) : clamped);
   };
 
   return (
@@ -36,20 +32,20 @@ export function NumberField({ value, onCommit, min, max, step = 1, label }: Prop
       type="number"
       min={min}
       max={max}
-      step={step}
+      step={integer ? 1 : "any"}
       aria-label={label}
       value={draft}
       onFocus={() => setEditing(true)}
       onChange={(event) => {
         setDraft(event.target.value);
-        commit(event.target.value);
+        const next = normalize(event.target.value);
+        if (next !== null) onCommit(next);
       }}
       onBlur={() => {
         setEditing(false);
-        const parsed = Number(draft);
-        const next = draft.trim() === "" || Number.isNaN(parsed) ? min : clamp(parsed, min, max);
-        setDraft(String(next));
-        onCommit(String(next));
+        const next = normalize(draft) ?? String(min);
+        setDraft(next);
+        onCommit(next);
       }}
     />
   );

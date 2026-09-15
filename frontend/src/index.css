@@ -333,6 +333,7 @@ select:focus {
 
 .table-scroll {
   overflow-x: auto;
+  max-width: 100%;
 }
 
 .lines {
@@ -455,6 +456,7 @@ select:focus {
 @media (max-width: 1100px) {
   .columns {
     flex-direction: column;
+    align-items: stretch;
   }
 
   .summary {
@@ -466,6 +468,7 @@ select:focus {
 @media (max-width: 760px) {
   .body {
     flex-direction: column;
+    align-items: stretch;
     padding: 12px;
   }
 

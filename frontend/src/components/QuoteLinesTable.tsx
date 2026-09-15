@@ -68,6 +68,7 @@ export function QuoteLinesTable({
                     <NumberField
                       label="Quantity"
                       min={1}
+                      integer
                       value={line.quantity}
                       onCommit={(next) =>
                         onChange(index, { quantity: Number(next) })
