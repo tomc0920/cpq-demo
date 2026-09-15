@@ -80,6 +80,34 @@ def test_deep_discount_requires_approval_before_sync(client: TestClient) -> None
 
     assert client.post(f"/api/quotes/{quote_id}/approve").json()["status"] == "Approved"
     assert client.post(f"/api/quotes/{quote_id}/sync").status_code == 200
+    assert client.post(f"/api/quotes/{quote_id}/sync").status_code == 200
+
+
+def test_editing_a_synced_quote_requires_approval_again(client: TestClient) -> None:
+    def payload(quantity: int) -> dict[str, object]:
+        return {
+            "opportunity_id": OPPORTUNITY,
+            "lines": [
+                {"product_id": IMPLEMENTATION, "quantity": quantity, "discount_percent": "35"}
+            ],
+        }
+
+    quote_id = client.post("/api/quotes", json=payload(1)).json()["id"]
+    client.post(f"/api/quotes/{quote_id}/approve")
+    client.post(f"/api/quotes/{quote_id}/sync")
+
+    reopened = client.put(f"/api/quotes/{quote_id}", json=payload(2)).json()
+    assert reopened["status"] == "Needs Approval"
+    assert client.post(f"/api/quotes/{quote_id}/sync").status_code == 409
+
+
+def test_syncing_an_empty_quote_is_rejected(client: TestClient) -> None:
+    quote_id = client.post(
+        "/api/quotes", json={"opportunity_id": OPPORTUNITY, "lines": []}
+    ).json()["id"]
+    response = client.post(f"/api/quotes/{quote_id}/sync")
+    assert response.status_code == 409
+    assert "no lines" in response.json()["detail"]
 
 
 def test_update_reprices_and_delete_removes_quote(client: TestClient) -> None:

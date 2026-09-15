@@ -1,8 +1,10 @@
 import { money, percent } from "../format";
 import type { Quote } from "../types";
+import { NumberField } from "./NumberField";
 
 interface Props {
   quote: Quote | null;
+  dirty: boolean;
   quoteDiscount: string;
   onQuoteDiscountChange: (value: string) => void;
   savedQuote: Quote | null;
@@ -14,6 +16,7 @@ interface Props {
 
 export function QuoteSummary({
   quote,
+  dirty,
   quoteDiscount,
   onQuoteDiscountChange,
   savedQuote,
@@ -25,7 +28,8 @@ export function QuoteSummary({
   const totals = quote?.totals;
   const needsApproval = Boolean(quote?.requires_approval);
   const approved = savedQuote?.status === "Approved" || savedQuote?.status === "Synced to Salesforce";
-  const canSync = Boolean(savedQuote) && (!needsApproval || approved);
+  const empty = (quote?.lines.length ?? 0) === 0;
+  const canSync = Boolean(savedQuote) && !dirty && !empty && (!needsApproval || approved);
 
   return (
     <section className="card summary">
@@ -34,12 +38,12 @@ export function QuoteSummary({
       <label className="field">
         <span>Quote-level discount</span>
         <div className="discount-input">
-          <input
-            type="number"
+          <NumberField
+            label="Quote-level discount"
             min={0}
             max={100}
             value={quoteDiscount}
-            onChange={(event) => onQuoteDiscountChange(event.target.value || "0")}
+            onCommit={onQuoteDiscountChange}
           />
           <span className="muted">%</span>
         </div>
@@ -78,22 +82,28 @@ export function QuoteSummary({
         </p>
       )}
 
-      {quote?.approval_reason && !approved && (
+      {quote?.approval_reason && (!approved || dirty) && (
         <p className="banner warning">{quote.approval_reason}</p>
       )}
 
-      {savedQuote?.status === "Synced to Salesforce" && (
+      {savedQuote && dirty && (
+        <p className="banner warning">
+          Unsaved changes — save the quote to sync these totals to Salesforce.
+        </p>
+      )}
+
+      {savedQuote?.status === "Synced to Salesforce" && !dirty && (
         <p className="banner success">
           {savedQuote.id} synced — opportunity amount set to {money(savedQuote.totals.net_total)}.
         </p>
       )}
 
       <div className="actions">
-        <button type="button" onClick={onSave} disabled={busy || !quote}>
+        <button type="button" onClick={onSave} disabled={busy || !quote || empty}>
           {savedQuote ? "Save changes" : "Save quote"}
         </button>
-        {needsApproval && !approved && (
-          <button type="button" onClick={onApprove} disabled={busy || !savedQuote}>
+        {needsApproval && (!approved || dirty) && (
+          <button type="button" onClick={onApprove} disabled={busy || !savedQuote || dirty}>
             Approve discount
           </button>
         )}
@@ -101,7 +111,11 @@ export function QuoteSummary({
           Sync to Salesforce
         </button>
       </div>
-      {!savedQuote && <p className="muted small">Save the quote before syncing it.</p>}
+      {empty ? (
+        <p className="muted small">Add at least one product before saving or syncing.</p>
+      ) : (
+        !savedQuote && <p className="muted small">Save the quote before syncing it.</p>
+      )}
     </section>
   );
 }

@@ -18,6 +18,7 @@ export default function App() {
   const [quoteDiscount, setQuoteDiscount] = useState("0");
   const [preview, setPreview] = useState<Quote | null>(null);
   const [savedQuote, setSavedQuote] = useState<Quote | null>(null);
+  const [savedPayload, setSavedPayload] = useState<string | null>(null);
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +57,10 @@ export default function App() {
     const timer = setTimeout(() => {
       api
         .previewQuote(payload, controller.signal)
-        .then(setPreview)
+        .then((quote) => {
+          setPreview(quote);
+          setError(null);
+        })
         .catch((err: Error) => {
           if (err.name !== "AbortError") setError(err.message);
         });
@@ -73,6 +77,7 @@ export default function App() {
     setQuoteDiscount("0");
     setPreview(null);
     setSavedQuote(null);
+    setSavedPayload(null);
     setError(null);
   }, []);
 
@@ -112,6 +117,7 @@ export default function App() {
         ? await api.updateQuote(savedQuote.id, payload)
         : await api.createQuote(payload);
       setSavedQuote(quote);
+      setSavedPayload(JSON.stringify(payload));
       setPreview(quote);
     });
 
@@ -191,6 +197,7 @@ export default function App() {
                 </div>
                 <QuoteSummary
                   quote={preview}
+                  dirty={payload !== null && JSON.stringify(payload) !== savedPayload}
                   quoteDiscount={quoteDiscount}
                   onQuoteDiscountChange={setQuoteDiscount}
                   savedQuote={savedQuote}

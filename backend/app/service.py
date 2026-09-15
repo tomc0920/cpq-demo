@@ -94,7 +94,12 @@ class QuoteService:
 
     def sync(self, quote_id: str) -> SyncResult:
         quote = self.get(quote_id)
-        if quote.requires_approval and quote.status is not QuoteStatus.approved:
+        if not quote.lines:
+            raise ValueError("Quote has no lines, so it cannot be synced to Salesforce")
+        if quote.requires_approval and quote.status not in (
+            QuoteStatus.approved,
+            QuoteStatus.synced,
+        ):
             raise ValueError("Quote needs approval before it can be synced to Salesforce")
 
         opportunity = self.salesforce.push_quote_amount(
