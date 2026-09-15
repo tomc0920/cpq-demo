@@ -57,7 +57,10 @@ export default function App() {
     const timer = setTimeout(() => {
       api
         .previewQuote(payload, controller.signal)
-        .then(setPreview)
+        .then((quote) => {
+          setPreview(quote);
+          setError(null);
+        })
         .catch((err: Error) => {
           if (err.name !== "AbortError") setError(err.message);
         });

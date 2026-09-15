@@ -101,6 +101,15 @@ def test_editing_a_synced_quote_requires_approval_again(client: TestClient) -> N
     assert client.post(f"/api/quotes/{quote_id}/sync").status_code == 409
 
 
+def test_syncing_an_empty_quote_is_rejected(client: TestClient) -> None:
+    quote_id = client.post(
+        "/api/quotes", json={"opportunity_id": OPPORTUNITY, "lines": []}
+    ).json()["id"]
+    response = client.post(f"/api/quotes/{quote_id}/sync")
+    assert response.status_code == 409
+    assert "no lines" in response.json()["detail"]
+
+
 def test_update_reprices_and_delete_removes_quote(client: TestClient) -> None:
     quote_id = client.post(
         "/api/quotes",
